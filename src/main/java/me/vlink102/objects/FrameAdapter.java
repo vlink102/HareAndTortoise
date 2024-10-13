@@ -15,7 +15,7 @@ public class FrameAdapter extends JFrame {
     }
 
     public static void addComponent(Container parent, Component component, GridBagLayout layout, GridBagConstraints constraints, int row, int col, int width, int height) {
-        constraints = ConstraintBuilder.create()
+        constraints = ConstraintBuilder.builder()
                 .setGridX(col)
                 .setGridY(row)
                 .setGridWidth(width)

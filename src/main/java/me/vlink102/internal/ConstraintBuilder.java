@@ -10,7 +10,7 @@ public class ConstraintBuilder {
         this.constraints = new GridBagConstraints();
     }
 
-    public static ConstraintBuilder create() {
+    public static ConstraintBuilder builder() {
         return new ConstraintBuilder();
     }
 
