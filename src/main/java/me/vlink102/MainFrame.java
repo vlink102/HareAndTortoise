@@ -1,7 +1,7 @@
 package me.vlink102;
 
-import lombok.Getter;
 import me.vlink102.game.GameInternal;
+import me.vlink102.game.RaceFrame;
 import me.vlink102.internal.ConstraintBuilder;
 import me.vlink102.objects.ContestantModelComparator;
 import me.vlink102.objects.FrameAdapter;
@@ -9,92 +9,20 @@ import me.vlink102.objects.Participant;
 import me.vlink102.objects.Speed;
 import me.vlink102.objects.ui.ClickableComponent;
 import me.vlink102.objects.ui.ContestantFrame;
+import me.vlink102.objects.ui.FieldComponentPair;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Collections;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 public class MainFrame extends FrameAdapter {
-
-    public class GridBagPanel extends JPanel {
-        public GridBagPanel() {
-            super(new GridBagLayout());
-        }
-
-        public GridBagPanel(Consumer<JPanel> consumer) {
-            this();
-            consumer.accept(this);
-        }
-    }
-
-    public class CustomPanel extends JPanel {
-        public CustomPanel(JComponent parent, GridBagConstraints constraints, Consumer<JPanel> consumer) {
-            this(parent, constraints);
-            consumer.accept(this);
-        }
-        public CustomPanel(JComponent parent, GridBagConstraints constraints) {
-            super();
-            parent.add(this, constraints);
-        }
-    }
-
-    private static Class<?>[] getClasses(Object... params) {
-        Class<?>[] classes = new Class<?>[params.length];
-        for (int i = 0; i < params.length; i++) {
-            switch (params[i]) {
-                case Integer _ -> classes[i] = int.class;
-                case Boolean _ -> classes[i] = boolean.class;
-                case Double _ -> classes[i] = double.class;
-                case Long _ -> classes[i] = long.class;
-                case Float _ -> classes[i] = float.class;
-                case Character _ -> classes[i] = char.class;
-                case Byte _ -> classes[i] = byte.class;
-                case Short _ -> classes[i] = short.class;
-                case null, default -> {
-                    assert params[i] != null;
-                    classes[i] = params[i].getClass();
-                }
-            }
-        }
-        return classes;
-    }
-
-    @Getter
-    public static class CustomComponent<T extends JComponent> extends JComponent {
-        private final T component;
-        public CustomComponent(Class<T> componentClass, JComponent parent, GridBagConstraints constraints, Consumer<T> consumer, Object... params) {
-            this(componentClass, parent, constraints, params);
-            consumer.accept(component);
-        }
-
-        public CustomComponent(Class<T> componentClass, JComponent parent, GridBagConstraints constraints, Object... params) {
-            try {
-                Class<?>[] classes = getClasses(params);
-                component = componentClass.getConstructor(classes).newInstance(params);
-                parent.add(component, constraints);
-            } catch (Exception e) {
-                throw new RuntimeException("Error creating component", e);
-            }
-        }
-
-        @Deprecated
-        public CustomComponent(JComponent existing, JComponent parent, GridBagConstraints constraints, Consumer<T> consumer) {
-            this(existing, parent, constraints);
-            consumer.accept(component);
-        }
-
-        @Deprecated
-        public CustomComponent(JComponent existing, JComponent parent, GridBagConstraints constraints) {
-            component = (T) existing;
-            parent.add(component, constraints);
-        }
-    }
 
     private static final String[] columns = {"Name", "Min Speed", "Max Speed", "Endurance", "UUID"};
 
@@ -128,60 +56,27 @@ public class MainFrame extends FrameAdapter {
                 return component;
             }
         };
-
         table.setRowSorter(rowSorter);
         for (int i = 0; i < columns.length; i++) {
             rowSorter.setComparator(i, new ContestantModelComparator());
         }
         table.setDragEnabled(true);
-        table.putClientProperty("terminateEditOnFocusLost", true);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
-
-        table.setFillsViewportHeight(true);
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                int row = table.rowAtPoint(e.getPoint());
-                if (row < 0 || row >= table.getRowCount()) return;
-                if (table.getSelectedRowCount() == 0) table.addRowSelectionInterval(row, row);
-                if (e.isPopupTrigger() && e.getComponent() instanceof JTable) {
-                    JPopupMenu popup = new JPopupMenu();
-                    JMenuItem deleteRow = new JMenuItem("Delete Row" + (table.getSelectedRowCount() > 1 ? "s" : ""));
-                    deleteRow.addActionListener(new AbstractAction() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            IntStream.of(table.getSelectedRows()).boxed().sorted(Collections.reverseOrder()).map(table::convertRowIndexToModel).forEach(model::removeRow);
-                        }
-                    });
-                    popup.add(deleteRow);
-
-                    popup.show(e.getComponent(), e.getX(), e.getY());
-                }
-            }
-        });
-        Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
-            if(event.getID() == MouseEvent.MOUSE_CLICKED) {
-                MouseEvent mouseEvent = (MouseEvent) event;
-                int row = table.rowAtPoint(mouseEvent.getPoint());
-                if(row == -1) table.clearSelection();
-            }
-        }, AWTEvent.MOUSE_EVENT_MASK);
         return table;
     }
 
     private JButton getClearButton(JTable table) {
-        JButton button = ClickableComponent.of("Clear All", _ -> {
+        return ClickableComponent.of("Clear All", _ -> {
             int user = JOptionPane.showConfirmDialog(MainFrame.this, "Are you sure?");
 
             if (user == JOptionPane.YES_OPTION) {
                 ((DefaultTableModel) table.getModel()).setRowCount(0);
             }
         });
-        button.setEnabled(false);
-        return button;
     }
 
-    protected void init() {
+    public MainFrame() {
+        super("Hare and Tortoise v2");
+
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -192,51 +87,77 @@ public class MainFrame extends FrameAdapter {
         });
 
         setPreferredSize(new Dimension(1080, 720));
-    }
-
-    /**
-     * Explicit type is not a declared constructor for spinner
-     * {@link JSpinner#JSpinner(SpinnerModel)}
-     */
-    public MainFrame() {
-        super("Hare and Tortoise v2");
-        init();
         GameInternal internal = new GameInternal(this);
         Container contentPane = getContentPane();
 
-        final JPanel mainPanel = new GridBagPanel();
-        final JPanel settings = new CustomComponent<>(JPanel.class, mainPanel, ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setWeightY(1).setFill(GridBagConstraints.BOTH).build(), panel -> panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null))).getComponent();
+        final JPanel mainPanel = new JPanel();
+        final JPanel settings = new JPanel();
 
-        final JLabel settingsLabel = new CustomComponent<>(JLabel.class, settings, ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setAnchor(GridBagConstraints.NORTH).build(), "Settings").getComponent();
+        mainPanel.setLayout(new GridBagLayout());
+        settings.setLayout(new GridBagLayout());
 
-        final JPanel settingsPanel = new GridBagPanel(panel -> panel.setAutoscrolls(false));
+        GridBagConstraints constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setWeightY(1).setFill(GridBagConstraints.BOTH).build();
+        mainPanel.add(settings, constraints);
+        settings.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
 
-        final JScrollPane settingsScrollPane = new CustomComponent<>(JScrollPane.class, settings, ConstraintBuilder.builder().setGridX(0).setGridY(1).setWeightY(1).setFill(GridBagConstraints.BOTH).build(), pane -> pane.setViewportView(settingsPanel), ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER).getComponent();
 
-        GridBagConstraints constraints = new GridBagConstraints();
-        final JLabel raceLengthLabel = new CustomComponent<>(JLabel.class, settingsPanel, ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(0.5f).setAnchor(GridBagConstraints.WEST).build(), "Race Length").getComponent();
 
-        final JSpinner raceLengthSpinner = new CustomComponent<>(JSpinner.class, settingsPanel, ConstraintBuilder.builder().setGridX(1).setGridY(0).setWeightX(0.5f).setAnchor(GridBagConstraints.EAST).build()).getComponent();
-        raceLengthSpinner.setModel(new SpinnerNumberModel(100, 1, 10000, 10));
+        final JLabel settingsLabel = new JLabel("Settings");
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setAnchor(GridBagConstraints.NORTH).build();
+        settings.add(settingsLabel, constraints);
 
-        final JPanel contestantPanel = new CustomComponent<>(JPanel.class, mainPanel, ConstraintBuilder.builder().setGridX(1).setGridY(0).setWeightX(1).setWeightY(1).setFill(GridBagConstraints.BOTH).build()).getComponent();
+        final JScrollPane settingsScrollPane = new JScrollPane();
+        settingsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        settingsScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 
-        final JPanel contestantManagerPanel = new CustomComponent<>(JPanel.class, contestantPanel, ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setFill(GridBagConstraints.BOTH).build(), panel -> panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null))).getComponent();
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(1).setWeightY(1).setFill(GridBagConstraints.BOTH).build();
+        settings.add(settingsScrollPane, constraints);
+
+        final JPanel settingsPanel = new JPanel();
+        settingsPanel.setLayout(new GridBagLayout());
+        settingsPanel.setAutoscrolls(false);
+
+        settingsScrollPane.setViewportView(settingsPanel);
+
+        final JLabel raceLengthLabel = new JLabel("Race Length");
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(0.5f).setAnchor(GridBagConstraints.WEST).build();
+        settingsPanel.add(raceLengthLabel, constraints);
+
+        final JSpinner raceLengthSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 10000, 10));
+        constraints = ConstraintBuilder.builder().setGridX(1).setGridY(0).setWeightX(0.5f).setAnchor(GridBagConstraints.EAST).build();
+        settingsPanel.add(raceLengthSpinner, constraints);
+
+        final JPanel contestantPanel = new JPanel();
+        contestantPanel.setLayout(new GridBagLayout());
+        constraints = ConstraintBuilder.builder().setGridX(1).setGridY(0).setWeightX(1).setWeightY(1).setFill(GridBagConstraints.BOTH).build();
+        mainPanel.add(contestantPanel, constraints);
+
+        final JPanel contestantManagerPanel = new JPanel();
+        contestantManagerPanel.setLayout(new GridBagLayout());
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setFill(GridBagConstraints.BOTH).build();
+        contestantPanel.add(contestantManagerPanel, constraints);
+        contestantManagerPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
 
         final DefaultTableModel model = getTableModel();
         final JTable table = getParticipantTable(model);
 
-        final JButton clearAllButton = new CustomComponent<JButton>(getClearButton(table), contestantManagerPanel, ConstraintBuilder.builder().setGridX(1).setGridY(0).setWeightX(0.5f).setWeightY(1).setFill(GridBagConstraints.BOTH).build()).getComponent();
-        table.getModel().addTableModelListener(_ -> clearAllButton.setEnabled(table.getRowCount() != 0));
+        final JButton clearAllButton = getClearButton(table);
+        clearAllButton.setEnabled(false);
+        constraints = ConstraintBuilder.builder().setGridX(1).setGridY(0).setWeightX(0.5f).setWeightY(1).setFill(GridBagConstraints.BOTH).build();
+        contestantManagerPanel.add(clearAllButton, constraints);
 
-        final JPanel addInsetPanel = new CustomComponent<>(JPanel.class, contestantManagerPanel, ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(0.5f).setWeightY(1).setFill(GridBagConstraints.BOTH).build()).getComponent();
+        final JPanel addInsetPanel = new JPanel();
+        addInsetPanel.setLayout(new GridBagLayout());
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(0.5f).setWeightY(1).setFill(GridBagConstraints.BOTH).build();
+        contestantManagerPanel.add(addInsetPanel, constraints);
 
-        final JButton addButton = new CustomComponent<JButton>(ClickableComponent.of("Add Contestant", _ -> {
+        final JButton addButton = ClickableComponent.of("Add Contestant", _ -> {
             ContestantFrame frame = new ContestantFrame();
             int user = JOptionPane.showOptionDialog(MainFrame.this, frame, "Add Contestant", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE, null, new String[] {"Add", "Discard"}, 0);
             if (user == JOptionPane.YES_OPTION) {
                 Participant participant = new Participant(frame.getName(), frame.getSpeed(), frame.getEndurance());
 
+                //internal.addParticipant(participant);
                 SwingUtilities.invokeLater(() -> {
                     Object[] data = participant.tableData();
                     DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
@@ -244,25 +165,83 @@ public class MainFrame extends FrameAdapter {
                     table.doLayout();
                 });
             }
-        }), addInsetPanel, ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(0.5f).setWeightY(1).setFill(GridBagConstraints.HORIZONTAL).build()).getComponent();
+        });
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(0.5f).setWeightY(1).setFill(GridBagConstraints.HORIZONTAL).build();
+        addInsetPanel.add(addButton, constraints);
 
-        final JButton randomContestant = new CustomComponent<JButton>(ClickableComponent.of("Generate Random", _ -> {
+        final JButton randomContestant = ClickableComponent.of("Generate Random", _ -> {
             Participant randomParticipant = Participant.generateRandom();
             SwingUtilities.invokeLater(() -> {
                 DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
                 tableModel.addRow(randomParticipant.tableData());
                 table.doLayout();
             });
-        }), addInsetPanel, ConstraintBuilder.builder().setGridX(0).setGridY(1).setFill(GridBagConstraints.HORIZONTAL).build()).getComponent();
+        });
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(1).setFill(GridBagConstraints.HORIZONTAL).build();
+        addInsetPanel.add(randomContestant, constraints);
 
-        final JScrollPane participantScrollPane = new CustomComponent<>(JScrollPane.class, contestantPanel, ConstraintBuilder.builder().setGridX(0).setGridY(1).setWeightX(1).setWeightY(0.3f).setFill(GridBagConstraints.BOTH).build(), pane -> {
-            pane.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
-            pane.setViewportView(table);
-        }).getComponent();
+        final JScrollPane participantScrollPane = new JScrollPane();
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(1).setWeightX(1).setWeightY(0.3f).setFill(GridBagConstraints.BOTH).build();
+        contestantPanel.add(participantScrollPane, constraints);
+        participantScrollPane.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
 
-        final JPanel startPanel = new CustomComponent<>(JPanel.class, contestantPanel, ConstraintBuilder.builder().setGridX(0).setGridY(2).setWeightX(1).setFill(GridBagConstraints.BOTH).build(), panel -> panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null))).getComponent();
 
-        ClickableComponent startButton = new CustomComponent<ClickableComponent>(ClickableComponent.of("Start Race", component -> {
+        table.putClientProperty("terminateEditOnFocusLost", true);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
+
+        Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
+            if(event.getID() == MouseEvent.MOUSE_CLICKED) {
+                MouseEvent mouseEvent = (MouseEvent) event;
+                int row = table.rowAtPoint(mouseEvent.getPoint());
+                if(row == -1) {
+                    table.clearSelection();
+                }
+            }
+        }, AWTEvent.MOUSE_EVENT_MASK);
+
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                int row = table.rowAtPoint(e.getPoint());
+                if (row < 0 || row >= table.getRowCount()) {
+                    return;
+                }
+                if (table.getSelectedRowCount() == 0) {
+                    table.addRowSelectionInterval(row, row);
+                }
+                if (e.isPopupTrigger() && e.getComponent() instanceof JTable) {
+                    JPopupMenu popup = new JPopupMenu();
+                    JMenuItem deleteRow = new JMenuItem("Delete Row" + (table.getSelectedRowCount() > 1 ? "s" : ""));
+                    deleteRow.addActionListener(new AbstractAction() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            IntStream.of(table.getSelectedRows())
+                                    .boxed()
+                                    .sorted(Collections.reverseOrder())
+                                    .map(table::convertRowIndexToModel)
+                                    .forEach(model::removeRow);
+                        }
+                    });
+                    popup.add(deleteRow);
+
+                    popup.show(e.getComponent(), e.getX(), e.getY());
+                }
+            }
+        });
+
+        table.getModel().addTableModelListener(_ -> clearAllButton.setEnabled(table.getRowCount() != 0));
+        table.setFillsViewportHeight(true);
+        participantScrollPane.setViewportView(table);
+
+
+        final JPanel startPanel = new JPanel();
+        startPanel.setLayout(new GridBagLayout());
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(2).setWeightX(1).setFill(GridBagConstraints.BOTH).build();
+        contestantPanel.add(startPanel, constraints);
+
+        startPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
+
+        ClickableComponent startButton = ClickableComponent.of("Start Race", component -> {
             if (table.getRowCount() <= 1) {
                 JOptionPane.showMessageDialog(MainFrame.this, "Not enough race participants to start", "Could not start race", JOptionPane.ERROR_MESSAGE);
                 return;
@@ -287,8 +266,12 @@ public class MainFrame extends FrameAdapter {
                 }
 
                 internal.getParticipants().forEach((_, participant) -> System.out.println(participant.toString()));
+                RaceFrame frame = new RaceFrame(internal, this);
+                frame.requestFocus();
             });
-        }), startPanel, ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setFill(GridBagConstraints.HORIZONTAL).build()).getComponent();
+        });
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setFill(GridBagConstraints.HORIZONTAL).build();
+        startPanel.add(startButton, constraints);
 
         contentPane.add(mainPanel);
         pack();
@@ -379,6 +362,8 @@ public class MainFrame extends FrameAdapter {
                 }
 
                 internal.getParticipants().forEach((_, participant) -> System.out.println(participant.toString()));
+                RaceFrame frame = new RaceFrame(internal, this);
+                frame.requestFocus();
             });
         });
 
