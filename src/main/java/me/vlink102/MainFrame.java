@@ -19,6 +19,7 @@ import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
@@ -74,6 +75,19 @@ public class MainFrame extends FrameAdapter {
         });
     }
 
+    private final JSpinner raceLengthSpinner;
+
+    public int getRaceLength() {
+        return (int) raceLengthSpinner.getValue();
+    }
+
+    private final JSpinner roundIntervalSpinner;
+
+    public int getRoundIntervalMs() {
+        return (int) roundIntervalSpinner.getValue();
+    }
+
+
     public MainFrame() {
         super("Hare and Tortoise v2");
 
@@ -87,7 +101,7 @@ public class MainFrame extends FrameAdapter {
         });
 
         setPreferredSize(new Dimension(1080, 720));
-        GameInternal internal = new GameInternal(this);
+
         Container contentPane = getContentPane();
 
         final JPanel mainPanel = new JPanel();
@@ -123,9 +137,17 @@ public class MainFrame extends FrameAdapter {
         constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(0.5f).setAnchor(GridBagConstraints.WEST).build();
         settingsPanel.add(raceLengthLabel, constraints);
 
-        final JSpinner raceLengthSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 10000, 10));
+        this.raceLengthSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 10000, 10));
         constraints = ConstraintBuilder.builder().setGridX(1).setGridY(0).setWeightX(0.5f).setAnchor(GridBagConstraints.EAST).build();
         settingsPanel.add(raceLengthSpinner, constraints);
+
+        final JLabel roundIntervalLabel = new JLabel("Round Interval (s):");
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(1).setWeightX(0.5f).setAnchor(GridBagConstraints.WEST).build();
+        settingsPanel.add(roundIntervalLabel, constraints);
+
+        this.roundIntervalSpinner = new JSpinner(new SpinnerNumberModel(500, 50, 5000, 100));
+        constraints = ConstraintBuilder.builder().setGridX(1).setGridY(1).setWeightX(0.5f).setAnchor(GridBagConstraints.EAST).build();
+        settingsPanel.add(roundIntervalSpinner, constraints);
 
         final JPanel contestantPanel = new JPanel();
         contestantPanel.setLayout(new GridBagLayout());
@@ -240,7 +262,7 @@ public class MainFrame extends FrameAdapter {
         contestantPanel.add(startPanel, constraints);
 
         startPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
-
+        GameInternal internal = new GameInternal(this);
         ClickableComponent startButton = ClickableComponent.of("Start Race", component -> {
             if (table.getRowCount() <= 1) {
                 JOptionPane.showMessageDialog(MainFrame.this, "Not enough race participants to start", "Could not start race", JOptionPane.ERROR_MESSAGE);

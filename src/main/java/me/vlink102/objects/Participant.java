@@ -1,7 +1,10 @@
 package me.vlink102.objects;
 
 import lombok.Getter;
+import lombok.Setter;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Random;
@@ -18,6 +21,33 @@ public class Participant implements Serializable, Comparable<Participant> {
 
     private final Speed baseSpeed;
     private final float endurance;
+/*
+    public static class TrackedPanel extends JPanel {
+        @Setter
+        @Getter
+        private int value;
+        private final int i;
+        public TrackedPanel(GridBagLayout layout, int i) {
+            super();
+            this.i = i;
+
+            this.setPreferredSize(new Dimension(1000, 100));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            g.setColor(i % 2 == 0 ? new Color(0, 120, 0, 120) : new Color(0, 150, 0, 150));
+            g.fillRect(getX(), getY(), getWidth(), getHeight());
+            g.setColor(Color.RED);
+            g.fillOval(getX(), getY(), 10, 10);
+        }
+    }*/
+
+    private transient PanelLink markerLink = null;
+
+    public void linkMarker(PanelLink racePanel) {
+        this.markerLink = racePanel;
+    }
 
     public Participant(String name, Speed baseSpeed, float endurance) {
         this.uniqueID = UUID.randomUUID();

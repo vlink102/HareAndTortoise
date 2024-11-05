@@ -62,6 +62,25 @@
                       <focusable value="false"/>
                     </properties>
                   </component>
+                  <component id="5aae3" class="javax.swing.JLabel">
+                    <constraints>
+                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="1.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <focusable value="false"/>
+                      <text value="Round Interval"/>
+                    </properties>
+                  </component>
+                  <component id="f3df" class="javax.swing.JSpinner">
+                    <constraints>
+                      <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="1.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <focusable value="false"/>
+                    </properties>
+                  </component>
                 </children>
               </grid>
             </children>
@@ -92,7 +111,7 @@
                   <gridbag weightx="0.5" weighty="1.0"/>
                 </constraints>
                 <properties>
-                  <text value="Button"/>
+                  <text value="Clear All"/>
                 </properties>
               </component>
               <grid id="43f48" layout-manager="GridBagLayout">
@@ -110,16 +129,16 @@
                     </constraints>
                     <properties>
                       <hideActionText value="true"/>
-                      <text value="Button"/>
+                      <text value="Add Contestant"/>
                     </properties>
                   </component>
-                  <component id="5f1a1" class="javax.swing.JButton" binding="button1" default-binding="true">
+                  <component id="5f1a1" class="javax.swing.JButton" binding="generateRandomButton" default-binding="true">
                     <constraints>
                       <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                       <gridbag weightx="0.0" weighty="0.0"/>
                     </constraints>
                     <properties>
-                      <text value="Button"/>
+                      <text value="Generate Random"/>
                     </properties>
                   </component>
                 </children>
@@ -136,10 +155,11 @@
               <size top="5" left="5" bottom="5" right="5"/>
             </border>
             <children>
-              <component id="b802b" class="javax.swing.JTable" binding="participantTable">
+              <component id="b802b" class="javax.swing.JTable">
                 <constraints/>
                 <properties>
                   <autoCreateRowSorter value="true"/>
+                  <enabled value="true"/>
                   <fillsViewportHeight value="true"/>
                 </properties>
               </component>
@@ -161,7 +181,7 @@
                   <gridbag weightx="1.0" weighty="0.0"/>
                 </constraints>
                 <properties>
-                  <text value="Button"/>
+                  <text value="Start Game"/>
                 </properties>
               </component>
             </children>
