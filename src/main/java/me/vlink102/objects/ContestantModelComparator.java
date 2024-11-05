@@ -1,6 +1,5 @@
 package me.vlink102.objects;
 
-import javax.swing.table.DefaultTableModel;
 import java.util.Comparator;
 import java.util.UUID;
 

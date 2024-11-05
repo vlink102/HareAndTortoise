@@ -10,16 +10,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class PanelLink extends JPanel {
+    private final JSlider slider;
+    private final MainFrame raceLength;
     @Getter
     private int internalValue;
-
-    private final JSlider slider;
     private volatile boolean isAnimating;
     private volatile boolean isCancelled;
-
     private Timer timer;
-    private final MainFrame raceLength;
-
 
     public PanelLink(MainFrame frame, int i) {
         super(new GridBagLayout());
@@ -29,17 +26,20 @@ public class PanelLink extends JPanel {
         slider = new JSlider(JSlider.HORIZONTAL, 0, frame.getRaceLength(), 0);
         slider.setForeground(Color.red);
         timer = new Timer();
-        this.add(slider, ConstraintBuilder.builder().setGridY(0).setGridX(0).setWeightX(1).setWeightY(1).setFill(GridBagConstraints.HORIZONTAL).build());
+        this.add(slider, ConstraintBuilder.builder()
+                .setGridY(0)
+                .setGridX(0)
+                .setWeightX(1)
+                .setWeightY(1)
+                .setFill(GridBagConstraints.HORIZONTAL)
+                .build()
+        );
     }
 
     public void setValue(int value, boolean winner) {
-        if (winner && (value >= raceLength.getRaceLength())) {
-            slider.setForeground(Color.YELLOW);
-        } else {
-            slider.setForeground(winner ? Color.GREEN : Color.RED);
-        }
+        if (winner && (value >= raceLength.getRaceLength())) slider.setForeground(Color.YELLOW);
+        else slider.setForeground(winner ? Color.GREEN : Color.RED);
         this.internalValue = value;
-
         if (isAnimating) {
             timer.cancel();
             isCancelled = true;
@@ -47,7 +47,6 @@ public class PanelLink extends JPanel {
         animate(slider, slider.getValue(), value);
     }
 
-    // 50ms
     private void animate(JSlider slider, int from, int to) {
         int step = (to - from) / 20;
         if (isCancelled) {
@@ -57,6 +56,7 @@ public class PanelLink extends JPanel {
         slider.setValueIsAdjusting(true);
         timer.schedule(new TimerTask() {
             int current = from;
+
             @Override
             public void run() {
                 isAnimating = true;

@@ -16,7 +16,7 @@ public class Participant implements Serializable, Comparable<Participant> {
     @Serial
     private static final long serialVersionUID = -2675347376441266935L;
 
-    private final transient UUID uniqueID;
+    private final UUID uniqueID;
     private final String name;
 
     private final Speed baseSpeed;

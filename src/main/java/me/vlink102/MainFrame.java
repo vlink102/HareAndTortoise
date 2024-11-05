@@ -3,90 +3,33 @@ package me.vlink102;
 import me.vlink102.game.GameInternal;
 import me.vlink102.game.RaceFrame;
 import me.vlink102.internal.ConstraintBuilder;
+import me.vlink102.internal.FileManager;
 import me.vlink102.objects.ContestantModelComparator;
 import me.vlink102.objects.FrameAdapter;
 import me.vlink102.objects.Participant;
 import me.vlink102.objects.Speed;
 import me.vlink102.objects.ui.ClickableComponent;
 import me.vlink102.objects.ui.ContestantFrame;
-import me.vlink102.objects.ui.FieldComponentPair;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
-import javax.swing.table.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
 public class MainFrame extends FrameAdapter {
 
     private static final String[] columns = {"Name", "Min Speed", "Max Speed", "Endurance", "UUID"};
-
-    private DefaultTableModel getTableModel() {
-        return new DefaultTableModel(null, columns) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column != 4;
-            }
-
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                return switch (columnIndex) {
-                    case 1, 2 -> Integer.class;
-                    case 3 -> Float.class;
-                    case 4 -> UUID.class;
-                    default -> String.class;
-                };
-            }
-        };
-    }
-    private JTable getParticipantTable(DefaultTableModel model) {
-        TableRowSorter<DefaultTableModel> rowSorter = new TableRowSorter<>(model);
-        JTable table = new JTable(model) {
-            @Override
-            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
-                Component component = super.prepareRenderer(renderer, row, column);
-                int rendererWidth = component.getPreferredSize().width;
-                TableColumn tableColumn = getColumnModel().getColumn(column);
-                tableColumn.setPreferredWidth(Math.max(rendererWidth + getIntercellSpacing().width, tableColumn.getPreferredWidth()));
-                return component;
-            }
-        };
-        table.setRowSorter(rowSorter);
-        for (int i = 0; i < columns.length; i++) {
-            rowSorter.setComparator(i, new ContestantModelComparator());
-        }
-        table.setDragEnabled(true);
-        return table;
-    }
-
-    private JButton getClearButton(JTable table) {
-        return ClickableComponent.of("Clear All", _ -> {
-            int user = JOptionPane.showConfirmDialog(MainFrame.this, "Are you sure?");
-
-            if (user == JOptionPane.YES_OPTION) {
-                ((DefaultTableModel) table.getModel()).setRowCount(0);
-            }
-        });
-    }
-
     private final JSpinner raceLengthSpinner;
-
-    public int getRaceLength() {
-        return (int) raceLengthSpinner.getValue();
-    }
-
     private final JSpinner roundIntervalSpinner;
-
-    public int getRoundIntervalMs() {
-        return (int) roundIntervalSpinner.getValue();
-    }
-
 
     public MainFrame() {
         super("Hare and Tortoise v2");
@@ -112,8 +55,14 @@ public class MainFrame extends FrameAdapter {
 
         GridBagConstraints constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(1).setWeightY(1).setFill(GridBagConstraints.BOTH).build();
         mainPanel.add(settings, constraints);
-        settings.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
-
+        settings.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createEmptyBorder(5, 5, 5, 5),
+                null,
+                TitledBorder.DEFAULT_JUSTIFICATION,
+                TitledBorder.DEFAULT_POSITION,
+                null,
+                null)
+        );
 
 
         final JLabel settingsLabel = new JLabel("Settings");
@@ -175,7 +124,16 @@ public class MainFrame extends FrameAdapter {
 
         final JButton addButton = ClickableComponent.of("Add Contestant", _ -> {
             ContestantFrame frame = new ContestantFrame();
-            int user = JOptionPane.showOptionDialog(MainFrame.this, frame, "Add Contestant", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE, null, new String[] {"Add", "Discard"}, 0);
+            int user = JOptionPane.showOptionDialog(
+                    MainFrame.this,
+                    frame,
+                    "Add Contestant",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    new String[]{"Add", "Discard"},
+                    0
+            );
             if (user == JOptionPane.YES_OPTION) {
                 Participant participant = new Participant(frame.getName(), frame.getSpeed(), frame.getEndurance());
 
@@ -202,6 +160,15 @@ public class MainFrame extends FrameAdapter {
         constraints = ConstraintBuilder.builder().setGridX(0).setGridY(1).setFill(GridBagConstraints.HORIZONTAL).build();
         addInsetPanel.add(randomContestant, constraints);
 
+        final JPanel fileManagerPanel = new JPanel();
+        fileManagerPanel.setLayout(new GridBagLayout());
+        constraints = ConstraintBuilder.builder().setGridX(2).setGridY(0).setWeightX(0.5f).setWeightY(1).setFill(GridBagConstraints.BOTH).build();
+        contestantManagerPanel.add(fileManagerPanel, constraints);
+
+        FileManager manager = new FileManager(this);
+
+
+
         final JScrollPane participantScrollPane = new JScrollPane();
         constraints = ConstraintBuilder.builder().setGridX(0).setGridY(1).setWeightX(1).setWeightY(0.3f).setFill(GridBagConstraints.BOTH).build();
         contestantPanel.add(participantScrollPane, constraints);
@@ -212,10 +179,10 @@ public class MainFrame extends FrameAdapter {
         table.setAutoResizeMode(JTable.AUTO_RESIZE_NEXT_COLUMN);
 
         Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
-            if(event.getID() == MouseEvent.MOUSE_CLICKED) {
+            if (event.getID() == MouseEvent.MOUSE_CLICKED) {
                 MouseEvent mouseEvent = (MouseEvent) event;
                 int row = table.rowAtPoint(mouseEvent.getPoint());
-                if(row == -1) {
+                if (row == -1) {
                     table.clearSelection();
                 }
             }
@@ -263,9 +230,43 @@ public class MainFrame extends FrameAdapter {
 
         startPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
         GameInternal internal = new GameInternal(this);
+
+        final JButton saveToFileButton = new ClickableComponent("Save to File", _ -> {
+            ArrayList<Participant> participants = new ArrayList<>();
+            for (int i = 0; i < table.getRowCount(); i++) {
+                String name = (String) table.getModel().getValueAt(i, 0);
+                Speed speed = new Speed((int) table.getModel().getValueAt(i, 1), (int) table.getModel().getValueAt(i, 2));
+                int endurance = ((Float) table.getModel().getValueAt(i, 3)).intValue();
+                UUID uuid = UUID.fromString(table.getModel().getValueAt(i, 4).toString());
+
+                participants.add(new Participant(name, speed, endurance, uuid));
+            }
+            manager.serializeParticipants(participants);
+        });
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(0).setWeightX(0.5f).setWeightY(1).setFill(GridBagConstraints.HORIZONTAL).build();
+        fileManagerPanel.add(saveToFileButton, constraints);
+
+        final JButton importFromFileButton = new ClickableComponent("Import from File", _ -> {
+            List<Participant> deserialized = manager.deserializeParticipants();
+
+            for (Participant participant : deserialized) {
+                Object[] data = participant.tableData();
+                DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
+                tableModel.addRow(data);
+                table.doLayout();
+            }
+        });
+        constraints = ConstraintBuilder.builder().setGridX(0).setGridY(1).setFill(GridBagConstraints.HORIZONTAL).build();
+        fileManagerPanel.add(importFromFileButton, constraints);
+
         ClickableComponent startButton = ClickableComponent.of("Start Race", component -> {
             if (table.getRowCount() <= 1) {
-                JOptionPane.showMessageDialog(MainFrame.this, "Not enough race participants to start", "Could not start race", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        MainFrame.this,
+                        "Not enough race participants to start",
+                        "Could not start race",
+                        JOptionPane.ERROR_MESSAGE
+                );
                 return;
             }
             table.clearSelection();
@@ -279,7 +280,10 @@ public class MainFrame extends FrameAdapter {
             SwingUtilities.invokeLater(() -> {
                 for (int i = 0; i < table.getRowCount(); i++) {
                     String name = (String) table.getModel().getValueAt(i, 0);
-                    Speed speed = new Speed((int) table.getModel().getValueAt(i, 1), (int) table.getModel().getValueAt(i, 2));
+                    Speed speed = new Speed(
+                            (int) table.getModel().getValueAt(i, 1),
+                            (int) table.getModel().getValueAt(i, 2)
+                    );
                     int endurance = ((Float) table.getModel().getValueAt(i, 3)).intValue();
                     UUID uuid = UUID.fromString(table.getModel().getValueAt(i, 4).toString());
 
@@ -297,5 +301,62 @@ public class MainFrame extends FrameAdapter {
 
         contentPane.add(mainPanel);
         pack();
+    }
+
+    private DefaultTableModel getTableModel() {
+        return new DefaultTableModel(null, columns) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column != 4;
+            }
+
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                return switch (columnIndex) {
+                    case 1, 2 -> Integer.class;
+                    case 3 -> Float.class;
+                    case 4 -> UUID.class;
+                    default -> String.class;
+                };
+            }
+        };
+    }
+
+    private JTable getParticipantTable(DefaultTableModel model) {
+        TableRowSorter<DefaultTableModel> rowSorter = new TableRowSorter<>(model);
+        JTable table = new JTable(model) {
+            @Override
+            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+                Component component = super.prepareRenderer(renderer, row, column);
+                int rendererWidth = component.getPreferredSize().width;
+                TableColumn tableColumn = getColumnModel().getColumn(column);
+                tableColumn.setPreferredWidth(Math.max(rendererWidth + getIntercellSpacing().width, tableColumn.getPreferredWidth()));
+                return component;
+            }
+        };
+        table.setRowSorter(rowSorter);
+        for (int i = 0; i < columns.length; i++) {
+            rowSorter.setComparator(i, new ContestantModelComparator());
+        }
+        table.setDragEnabled(true);
+        return table;
+    }
+
+    private JButton getClearButton(JTable table) {
+        return ClickableComponent.of("Clear All", _ -> {
+            int user = JOptionPane.showConfirmDialog(MainFrame.this, "Are you sure?");
+
+            if (user == JOptionPane.YES_OPTION) {
+                ((DefaultTableModel) table.getModel()).setRowCount(0);
+            }
+        });
+    }
+
+    public int getRaceLength() {
+        return (int) raceLengthSpinner.getValue();
+    }
+
+    public int getRoundIntervalMs() {
+        return (int) roundIntervalSpinner.getValue();
     }
 }
